@@ -485,3 +485,48 @@ input[type="password"]:focus {
 .selection-group h2 {
   margin-bottom: 8px;
 }
+/* ===== DONATION BOX ===== */
+.donation-box {
+  margin-top: 24px;
+  padding: 18px;
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.donation-box h2 {
+  color: #facc15;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+/* PayPal bouton */
+.paypal-btn {
+  display: inline-block;
+  background: #ffc439;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 12px;
+  text-decoration: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.paypal-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.05);
+}
+
+/* Wave info */
+.wave-info {
+  background: #1e293b;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  margin-top: 8px;
+}

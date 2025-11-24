@@ -27,6 +27,10 @@ mongoose
    API JOUEURS
    ========================= */
 app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "liste.html"));
+});
+
+app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "joueurs.html"));
 });
 
