@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Liste des sélections</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script>
+      // Navbar réutilisable
+      fetch("/navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
+        });
+    </script>
+
+    <div class="main-container">
+      <h1>Liste des sélections</h1>
+
+      <!-- Grille de cartes des sélections -->
+      <div id="selectionList" class="selection-grid"></div>
+
+      <hr style="margin: 24px 0; border-color: #1f2937" />
+
+      <!-- Détail d'une sélection -->
+      <div id="selectionDetail" class="selection-detail">
+        <p>
+          Sélectionne une carte pour voir le détail de la liste de 27 joueurs.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const selectionListEl = document.getElementById("selectionList");
+      const selectionDetailEl = document.getElementById("selectionDetail");
+
+      async function loadSelections() {
+        try {
+          const res = await fetch("/api/selections");
+          const selections = await res.json();
+
+          selectionListEl.innerHTML = "";
+
+          if (!selections || selections.length === 0) {
+            selectionListEl.innerHTML =
+              "<p>Aucune sélection enregistrée pour le moment.</p>";
+            return;
+          }
+
+          selections.forEach((sel) => {
+            const card = document.createElement("div");
+            card.className = "selection-card";
+
+            const date = sel.createdAt
+              ? new Date(sel.createdAt).toLocaleString("fr-FR")
+              : "Date inconnue";
+
+            const total =
+              (sel.gk?.length || 0) +
+              (sel.cb?.length || 0) +
+              (sel.rb?.length || 0) +
+              (sel.lb?.length || 0) +
+              (sel.cm?.length || 0) +
+              (sel.rw?.length || 0) +
+              (sel.lw?.length || 0) +
+              (sel.st?.length || 0);
+
+            card.innerHTML = `
+          <div class="selection-author">${sel.authorName || "Inconnu"}</div>
+          <div class="selection-date">${date}</div>
+          <div class="selection-meta">${total || 0} joueurs sélectionnés</div>
+          <button class="selection-view-btn">Voir la sélection</button>
+        `;
+
+            card.addEventListener("click", () => {
+              loadSelectionDetail(sel._id);
+              // met en surbrillance la carte sélectionnée
+              document
+                .querySelectorAll(".selection-card")
+                .forEach((c) => c.classList.remove("active"));
+              card.classList.add("active");
+            });
+
+            selectionListEl.appendChild(card);
+          });
+        } catch (err) {
+          console.error(err);
+          selectionListEl.innerHTML =
+            "<p>Erreur lors du chargement des sélections.</p>";
+        }
+      }
+
+      async function loadSelectionDetail(id) {
+        try {
+          const res = await fetch("/api/selections/" + id);
+          const sel = await res.json();
+
+          const renderGroup = (title, arr) => {
+            if (!arr || arr.length === 0) return "";
+            return `
+          <div class="selection-group">
+            <h2>${title}</h2>
+            <div class="players-group">
+              ${arr
+                .map((p) => {
+                  const imgSrc = p.photoBase64
+                    ? `data:image/jpeg;base64,${p.photoBase64}`
+                    : "";
+                  return `
+                  <label class="player-card">
+                    ${imgSrc ? `<img src="${imgSrc}" alt="${p.fullName}">` : ""}
+                    <span>${p.fullName}</span>
+                  </label>
+                `;
+                })
+                .join("")}
+            </div>
+          </div>
+        `;
+          };
+
+          selectionDetailEl.innerHTML = `
+        <h1>Sélection de ${sel.authorName}</h1>
+        <p>Créée le ${new Date(sel.createdAt).toLocaleString("fr-FR")}</p>
+        ${renderGroup("Gardiens", sel.gk)}
+        ${renderGroup("Défenseurs centraux", sel.cb)}
+        ${renderGroup("Latéraux droits", sel.rb)}
+        ${renderGroup("Latéraux gauches", sel.lb)}
+        ${renderGroup("Milieux", sel.cm)}
+        ${renderGroup("Ailiers droits", sel.rw)}
+        ${renderGroup("Ailiers gauches", sel.lw)}
+        ${renderGroup("Buteurs", sel.st)}
+      `;
+        } catch (err) {
+          console.error(err);
+          selectionDetailEl.innerHTML =
+            "<p>Erreur lors du chargement du détail de la sélection.</p>";
+        }
+      }
+
+      loadSelections();
+    </script>
+  </body>
+</html>

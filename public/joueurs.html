@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ajouter un joueur</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script>
+      fetch("/navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
+        });
+    </script>
+    <div class="main-container">
+      <h1>Ajouter un joueur</h1>
+
+      <form id="playerForm">
+        <label
+          >Nom complet :
+          <input type="text" id="fullName" required />
+        </label>
+
+        <label
+          >Poste :
+          <select id="position" required>
+            <option value="">-- Choisir un poste --</option>
+            <option value="GK">Gardien</option>
+            <option value="CB">Défenseur central</option>
+            <option value="RB">Latéral droit</option>
+            <option value="LB">Latéral gauche</option>
+            <option value="CM">Milieu</option>
+            <option value="RW">Ailier droit</option>
+            <option value="LW">Ailier gauche</option>
+            <option value="ST">Buteur</option>
+          </select>
+        </label>
+
+        <!-- FICHIER IMAGE -->
+        <label
+          >Photo du joueur (fichier image) :
+          <input type="file" id="photoFile" accept="image/*" required />
+        </label>
+
+        <!-- Aperçu de l'image -->
+        <div style="margin-top: 10px">
+          <p>Aperçu :</p>
+          <img
+            id="photoPreview"
+            src=""
+            alt=""
+            style="max-height: 120px; display: none"
+          />
+        </div>
+        <!-- Password -->
+        <label
+          >Mot de passe sécurité :
+          <input
+            type="password"
+            id="password"
+            placeholder="Mot de passe"
+            required
+          />
+        </label>
+
+        <button type="submit">Enregistrer</button>
+      </form>
+
+      <p id="message"></p>
+
+      <p style="margin-top: 16px">
+        <a href="/selection.html">➡ Composer une sélection</a> |
+        <a href="/selections.html">📋 Voir les sélections</a>
+      </p>
+    </div>
+
+    <script>
+      const form = document.getElementById("playerForm");
+      const msg = document.getElementById("message");
+      const photoFileInput = document.getElementById("photoFile");
+      const photoPreview = document.getElementById("photoPreview");
+
+      // on stocke ici le base64 (sans le préfixe "data:image/...;base64,")
+      let photoBase64Data = "";
+
+      // Quand on choisit une image
+      photoFileInput.addEventListener("change", () => {
+        const file = photoFileInput.files[0];
+        if (!file) {
+          photoBase64Data = "";
+          photoPreview.style.display = "none";
+          photoPreview.src = "";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result; // "data:image/jpeg;base64,xxxxxx"
+          // On sépare pour garder seulement la partie base64
+          const parts = result.split(",");
+          if (parts.length === 2) {
+            photoBase64Data = parts[1]; // uniquement les données
+          } else {
+            photoBase64Data = "";
+          }
+
+          // Aperçu de l'image
+          photoPreview.src = result;
+          photoPreview.style.display = "block";
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      // Envoi du formulaire
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msg.textContent = '';
+
+  // Vérifier mot de passe
+  const password = document.getElementById('password').value.trim();
+  if (password !== "1234535") {
+    msg.textContent = "❌ Mot de passe incorrect";
+    return;
+  }
+
+  const fullName = document.getElementById('fullName').value.trim();
+  const position = document.getElementById('position').value;
+
+  if (!photoBase64Data) {
+    msg.textContent = "Veuillez sélectionner une image valide.";
+    return;
+  }
+
+  const payload = {
+    fullName,
+    position,
+    photoBase64: photoBase64Data
+  };
+
+  msg.textContent = "Enregistrement en cours...";
+
+  try {
+    const res = await fetch("/api/players", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.textContent = "Erreur: " + (data.error || "inconnue");
+    } else {
+      msg.textContent = "✅ Joueur enregistré avec succès";
+      form.reset();
+      photoPreview.style.display = "none";
+      photoPreview.src = "";
+      photoBase64Data = "";
+    }
+  } catch (err) {
+    msg.textContent = "Erreur réseau";
+  }
+});
+
+    </script>
+  </body>
+</html>

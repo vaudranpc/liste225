@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Composer une sélection</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script>
+      // charge la navbar réutilisable
+      fetch("/navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
+        });
+    </script>
+
+    <div class="main-container">
+      <h1>Composer une sélection (27 joueurs)</h1>
+
+      <div style="margin-bottom: 16px">
+        <label
+          >Nom du sélectionneur :
+          <input type="text" id="authorName" required />
+        </label>
+      </div>
+
+      <div id="playersContainer"></div>
+
+      <button id="saveBtn">Sauvegarder la sélection</button>
+
+      <p id="message"></p>
+    </div>
+
+    <script>
+      const playersContainer = document.getElementById("playersContainer");
+      const msg = document.getElementById("message");
+
+      const quotas = {
+        GK: 3, // gardiens
+        CB: 5, // défenseurs centraux
+        RB: 2, // latéraux droits
+        LB: 2, // latéraux gauches
+        CM: 7, // milieux
+        RW: 3, // ailiers droits
+        LW: 2, // ailiers gauches
+        ST: 3, // buteurs
+      };
+
+      const positionLabels = {
+        GK: "Gardiens (3)",
+        CB: "Défenseurs centraux (5)",
+        RB: "Latéraux droits (2)",
+        LB: "Latéraux gauches (2)",
+        CM: "Milieux (7)",
+        RW: "Ailiers droits (3)",
+        LW: "Ailiers gauches (2)",
+        ST: "Buteurs (3)",
+      };
+
+      async function loadPlayers() {
+        const res = await fetch("/api/players");
+        const players = await res.json();
+
+        const byPosition = {};
+        Object.keys(quotas).forEach((pos) => (byPosition[pos] = []));
+        players.forEach((p) => {
+          if (byPosition[p.position]) byPosition[p.position].push(p);
+        });
+
+        // pour chaque poste, on crée un bloc avec les cartes joueurs
+        Object.keys(byPosition).forEach((pos) => {
+          const group = document.createElement("div");
+          group.innerHTML = `<h2>${positionLabels[pos]}</h2>`;
+
+          const wrapper = document.createElement("div");
+          wrapper.className = "players-group";
+
+          byPosition[pos].forEach((p) => {
+            const card = document.createElement("label");
+            card.className = "player-card";
+
+            const imgSrc = p.photoBase64
+              ? `data:image/jpeg;base64,${p.photoBase64}`
+              : "";
+
+            card.innerHTML = `
+  ${imgSrc ? `<img src="${imgSrc}" alt="${p.fullName}">` : ""}
+  <span>${p.fullName}</span>
+  <input type="checkbox" data-position="${pos}" value="${p._id}">
+`;
+
+            wrapper.appendChild(card);
+          });
+
+          group.appendChild(wrapper);
+          playersContainer.appendChild(group);
+        });
+      }
+
+      loadPlayers().catch(console.error);
+
+      document.getElementById("saveBtn").addEventListener("click", async () => {
+        msg.textContent = "";
+
+        const authorName = document.getElementById("authorName").value.trim();
+        if (!authorName) {
+          msg.textContent = "Le nom du sélectionneur est obligatoire";
+          return;
+        }
+
+        const checked = Array.from(
+          document.querySelectorAll('input[type="checkbox"]:checked')
+        );
+        const payload = {
+          authorName,
+          gk: [],
+          cb: [],
+          rb: [],
+          lb: [],
+          cm: [],
+          rw: [],
+          lw: [],
+          st: [],
+        };
+
+        checked.forEach((input) => {
+          const pos = input.dataset.position;
+          // gk -> payload.gk, cb -> payload.cb, etc. (en minuscule)
+          payload[pos.toLowerCase()].push(input.value);
+        });
+
+        // vérif quotas côté front (en plus des vérifs côté backend)
+        for (const [pos, quota] of Object.entries(quotas)) {
+          const arr = payload[pos.toLowerCase()];
+          if (arr.length !== quota) {
+            msg.textContent = `Il faut exactement ${quota} joueur(s) pour ${positionLabels[pos]}`;
+            return;
+          }
+        }
+
+        try {
+          const res = await fetch("/api/selections", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            msg.textContent = "Erreur 1: " + (data.error || "inconnue");
+          } else {
+            msg.textContent = "✅ Sélection enregistrée (ID: " + data._id + ")";
+          }
+        } catch (err) {
+          console.error(err);
+          msg.textContent = "Erreur réseau";
+        }
+      });
+    </script>
+  </body>
+</html>
