@@ -216,6 +216,78 @@ app.get("/api/selections/:id", async (req, res) => {
   }
 });
 
+app.get("/api/stats/players", async (req, res) => {
+  try {
+    // On charge toutes les sélections avec les joueurs peuplés
+    const selections = await Selection.find()
+      .populate("gk")
+      .populate("cb")
+      .populate("rb")
+      .populate("lb")
+      .populate("cm")
+      .populate("rw")
+      .populate("lw")
+      .populate("st");
+
+    // Structure de base
+    const stats = {
+      GK: {},
+      CB: {},
+      RB: {},
+      LB: {},
+      CM: {},
+      RW: {},
+      LW: {},
+      ST: {},
+    };
+
+    const addToStats = (posKey, playersArray) => {
+      playersArray.forEach((p) => {
+        if (!p || !p._id) return;
+        const id = p._id.toString();
+        if (!stats[posKey][id]) {
+          stats[posKey][id] = {
+            playerId: id,
+            fullName: p.fullName,
+            photoBase64: p.photoBase64,
+            position: posKey,
+            count: 0,
+          };
+        }
+        stats[posKey][id].count += 1;
+      });
+    };
+
+    // Parcourir toutes les sélections
+    selections.forEach((sel) => {
+      addToStats("GK", sel.gk || []);
+      addToStats("CB", sel.cb || []);
+      addToStats("RB", sel.rb || []);
+      addToStats("LB", sel.lb || []);
+      addToStats("CM", sel.cm || []);
+      addToStats("RW", sel.rw || []);
+      addToStats("LW", sel.lw || []);
+      addToStats("ST", sel.st || []);
+    });
+
+    // Transformer en tableaux triés
+    const result = {};
+    Object.keys(stats).forEach((posKey) => {
+      result[posKey] = Object.values(stats[posKey]).sort(
+        (a, b) => b.count - a.count
+      );
+    });
+
+    res.json({
+      totalSelections: selections.length,
+      stats: result,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur stats" });
+  }
+});
+
 // Démarrage
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

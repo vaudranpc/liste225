@@ -530,3 +530,16 @@ input[type="password"]:focus {
   font-size: 0.95rem;
   margin-top: 8px;
 }
+
+/* Groupe de stats par poste */
+.stats-group {
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+
+/* Carte stats (réutilise player-card mais ajoute un bloc pour le compteur) */
+.stats-card .player-count {
+  font-size: 0.8rem;
+  color: #a5b4fc;
+  margin-top: 4px;
+}

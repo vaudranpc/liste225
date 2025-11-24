@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stats des joueurs sélectionnés</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script>
+      // Charger la navbar réutilisable
+      fetch("/navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
+        });
+    </script>
+
+    <div class="main-container">
+      <h1>Statistiques des joueurs les plus sélectionnés</h1>
+      <p id="statsHeader">Chargement des stats…</p>
+
+      <div id="statsContainer"></div>
+    </div>
+
+    <script>
+      const statsHeader = document.getElementById("statsHeader");
+      const statsContainer = document.getElementById("statsContainer");
+
+      const positionLabels = {
+        GK: "Gardiens",
+        CB: "Défenseurs centraux",
+        RB: "Latéraux droits",
+        LB: "Latéraux gauches",
+        CM: "Milieux de terrain",
+        RW: "Ailiers droits",
+        LW: "Ailiers gauches",
+        ST: "Buteurs",
+      };
+
+      const positionsOrder = ["GK", "CB", "RB", "LB", "CM", "RW", "LW", "ST"];
+
+      async function loadStats() {
+        try {
+          const res = await fetch("/api/stats/players");
+          const data = await res.json();
+
+          const totalSelections = data.totalSelections || 0;
+          const stats = data.stats || {};
+
+          if (totalSelections === 0) {
+            statsHeader.textContent =
+              "Aucune sélection enregistrée pour le moment.";
+            return;
+          }
+
+          statsHeader.textContent = `Nombre total de sélections enregistrées : ${totalSelections}`;
+
+          statsContainer.innerHTML = "";
+
+          positionsOrder.forEach((posKey) => {
+            const players = stats[posKey] || [];
+            const groupDiv = document.createElement("div");
+            groupDiv.className = "stats-group";
+
+            let groupHtml = `<h2>${positionLabels[posKey]}</h2>`;
+
+            if (players.length === 0) {
+              groupHtml += `<p>Aucun joueur sélectionné à ce poste pour l'instant.</p>`;
+            } else {
+              groupHtml += `
+            <div class="players-group">
+              ${players
+                .map((p) => {
+                  const imgSrc = p.photoBase64
+                    ? `data:image/jpeg;base64,${p.photoBase64}`
+                    : "";
+                  return `
+                  <div class="player-card stats-card">
+                    ${imgSrc ? `<img src="${imgSrc}" alt="${p.fullName}">` : ""}
+                    <span>${p.fullName}</span>
+                    <div class="player-count">${p.count} sélection${
+                    p.count > 1 ? "s" : ""
+                  }</div>
+                  </div>
+                `;
+                })
+                .join("")}
+            </div>
+          `;
+            }
+
+            groupDiv.innerHTML = groupHtml;
+            statsContainer.appendChild(groupDiv);
+          });
+        } catch (err) {
+          console.error(err);
+          statsHeader.textContent =
+            "Erreur lors du chargement des statistiques.";
+        }
+      }
+
+      loadStats();
+    </script>
+  </body>
+</html>
